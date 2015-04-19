@@ -38,5 +38,7 @@ function ⋅(a::Vec3, b::Vec3)
 end
 
 function x (a::Vec3, b::Vec3)
-  return
+  return Vec3(a.y*b.z - a.z*b.y,
+              a.z*b.x - a.x*b.z,
+              a.x*b.y - a.y*b.x)
 end

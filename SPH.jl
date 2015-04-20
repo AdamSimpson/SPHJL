@@ -24,12 +24,14 @@ end
 
 end
 
+using Vec
+
 function main()
   a = Vec3{Float64}(1.0,2.0,3.0)
   b = Vec3{Float64}(3.0,2.0,1.0)
 
-  @code_native a⋅b
+  a.b
 end
 
-main()
+@code_llvm main()
 

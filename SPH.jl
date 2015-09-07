@@ -1,7 +1,7 @@
 module SPH
   using Vec
   export Particle, SetupSPH, Parameters, AABB, ApplyForces, PredictPositions, FindNeighbors,
-         CalculateDensity, CalculateLambda, AverageDensity, CalculateΔp, CollisionResponse,
+         CalculateDensity, CalculateLambda, PrintAverageDensity, CalculateΔp, CollisionResponse,
          UpdatePosition★, UpdateVelocity, UpdatePosition, WritePositions
 
   type AABB
@@ -53,9 +53,9 @@ module SPH
 
     params.spacing = particles[2].p.x - particles[1].p.x
     params.h = 2.0 * params.spacing
-    params.ρ0 = 1000.0
-    params.mass = params.spacing^3.0 * params.ρ0
-    params.Δt = 1/60.0
+    params.mass = 1.0 #params.spacing^3 * params.ρ0
+    params.ρ0 = params.mass / (params.spacing)^3
+    params.Δt = 1.0/60.0
 
     walls.x_max = maximum(coords[:,1]) * 1.5
     walls.y_max = maximum(coords[:,2])
@@ -86,7 +86,7 @@ module SPH
   function ApplyForces(particles, params)
     for particle in particles
       gravity = Vec3(0.0, 0.0, -9.8)
-      particle.v = particle.v + params.Δt * gravity
+      particle.v += (params.Δt * gravity)
     end
   end
 
@@ -118,7 +118,7 @@ module SPH
     end
   end
 
-  function AverageDensity(particles, params)
+  function PrintAverageDensity(particles, params)
     ρ_avg = 0.0
     for pᵢ in particles
       ρ_avg += pᵢ.ρ
@@ -136,21 +136,25 @@ module SPH
         grad = ∇W(pᵢ.p★ - pⱼ.p★, params.h)
         Σi += grad
         # k = j
-        Σ∇Ci2 += mag(grad/params.ρ0)^2.0
+        Σ∇Ci2 += mag(grad/params.ρ0)^2 # Could use dot product as well...
       end
       # k = i
-      Σ∇Ci2 += mag(Σi/params.ρ0)^2.0
-      Ci = pᵢ.ρ/params.ρ0 - 1.0
+      Σ∇Ci2 += mag(Σi/params.ρ0)^2
+      Ci = pᵢ.ρ/params.ρ0 - 1
       ϵ = 1.0
       pᵢ.λ = -Ci / (Σ∇Ci2 + ϵ)
     end
   end
 
   function CalculateΔp(particles, params)
+    h = params.h
+    k = 0.1
+    Δq = Vec3(0.1*h, 0.0, 0.0)
     for pᵢ in particles
       pᵢ.Δp = Vec3(0.0)
       for pⱼ in pᵢ.neighbors
-        pᵢ.Δp += (pᵢ.λ + pⱼ.λ) * ∇W(pᵢ.p★ - pⱼ.p★, params.h)
+        s_corr = -k*(W(pᵢ.p★ - pⱼ.p★, h)/W(Δq, h))^4
+        pᵢ.Δp += (pᵢ.λ + pⱼ.λ + s_corr) * ∇W(pᵢ.p★ - pⱼ.p★, h)
       end
       pᵢ.Δp /= params.ρ0
     end
@@ -188,7 +192,7 @@ module SPH
 
   function UpdateVelocity(particles, params)
     for pᵢ in particles
-      pᵢ.v = 1.0/params.Δt * (pᵢ.p★ - pᵢ.p)
+      pᵢ.v = 1/params.Δt * (pᵢ.p★ - pᵢ.p)
     end
   end
 
@@ -232,7 +236,7 @@ function main()
       UpdatePosition★(particles, params)
     end
 
-    AverageDensity(particles, params)
+    PrintAverageDensity(particles, params)
 
     UpdateVelocity(particles, params)
     UpdatePosition(particles, params)

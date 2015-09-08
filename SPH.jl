@@ -57,8 +57,11 @@ module SPH
     params.ρ0 = params.mass / (params.spacing)^3
     params.Δt = 1.0/60.0
 
+    walls.x_min = minimum(coords[:,1])
     walls.x_max = maximum(coords[:,1]) * 1.5
+    walls.y_min = minimum(coords[:,2])
     walls.y_max = maximum(coords[:,2])
+    walls.z_min = minimum(coords[:,3])
     walls.z_max = maximum(coords[:,3]) * 2.0
     println(walls)
   end
@@ -148,8 +151,8 @@ module SPH
 
   function CalculateΔp(particles, params)
     h = params.h
-    k = 0.1
-    Δq = Vec3(0.1*h, 0.0, 0.0)
+    k = 0.001 #h*0.01
+    Δq = Vec3(0.0*h, 0.0, 0.0)
     for pᵢ in particles
       pᵢ.Δp = Vec3(0.0)
       for pⱼ in pᵢ.neighbors
